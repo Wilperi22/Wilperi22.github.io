@@ -151,7 +151,6 @@
       ]),
       dir('Media', [
         dir('Videos', [
-          file('showreel.mp4', 'video', { track: 'showreel' }),
           ...D.projects.filter(pr => pr.video).map(pr => file(`${pr.id}-demo.mp4`, 'video', { track: pr.id }))
         ]),
         dir('Screenshots', D.projects.flatMap(pr => shots(pr).map(f => ({ ...f, name: `${pr.id}-${f.name}` }))))
@@ -379,9 +378,7 @@
   const tracks = () => {
     const V = window.PORTFOLIO_VIDEOS || {};
     const real = (id, own) => (own ? { src: own } : V[id] ? { src: V[id].src, duration: V[id].duration } : {});
-    const sr = real('showreel', D.showreel.src);
     return [
-      { id: 'showreel', title: D.showreel.title, subtitle: D.profile.name, color: D.showreel.color, src: sr.src, duration: sr.duration || D.showreel.duration || 40, scenes: D.showreel.scenes },
       ...D.projects.filter(p => p.video).map(p => {
         const r = real(p.id, p.video.src);
         return { id: p.id, title: p.video.title || `${p.name} — Demo`, subtitle: p.name, color: p.color,

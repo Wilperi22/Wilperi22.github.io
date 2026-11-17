@@ -110,8 +110,7 @@ window.PORTFOLIO = {
         "Price, decisions and portfolio value shown as charts"
       ],
       links: {},
-      screenshots: [{ title: "Overview" }, { title: "Data" }],
-      video: { title: "Crypto Hackathon — Demo", duration: 24 }
+      screenshots: [{ title: "Overview" }, { title: "Data" }]
     },
     {
       id: "hotel-booking-system",
@@ -127,8 +126,7 @@ window.PORTFOLIO = {
         "Price calculation and input validation"
       ],
       links: {},
-      screenshots: [{ title: "Overview" }, { title: "Data" }],
-      video: { title: "Hotel Booking System — Demo", duration: 20 }
+      screenshots: [{ title: "Overview" }, { title: "Data" }]
     }
   ],
 
