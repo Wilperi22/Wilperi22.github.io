@@ -29,6 +29,12 @@ js/os.js        window manager, dock, desktop, virtual file system
 js/apps.js      the apps (About, Projects, Files, Terminal, Browser, Media Player, Contact, Notes, Preview)
 ```
 
+## Terminal & files
+
+Visitors get a small but real shell: `ls -l`, `cd`, `cat`, `touch`, `mkdir`, `rm`, `cp`, `mv`, `find`, `grep`, `head`, `tail`, `wc`, `sort`, `uniq`, `ps`, `kill`, `cowsay` and more (`help` lists them). Pipes (`|`), redirects (`>`, `>>`, `<`), `&&`, `;` and `*` wildcards work, and `nano` and `vim` open a full-window editor.
+
+The built-in files (generated from `data.js`) are read-only. Files that visitors create are stored in *their own* browser (localStorage). Nobody else sees them, and they never reach you. Visitors can also create, rename, duplicate and delete files in the Files app (right-click or `+`) and edit their own text files in Notes. `factory-reset` (or the system menu's *Delete my files…*) clears them.
+
 ## Demo videos
 
 ```sh

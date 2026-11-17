@@ -11,8 +11,10 @@
   const isCoarse = () => matchMedia('(pointer: coarse)').matches;
   const store = {
     get(k) { try { return localStorage.getItem('pos:' + k); } catch { return null; } },
-    set(k, v) { try { localStorage.setItem('pos:' + k, v); } catch { /* storage unavailable */ } }
+    set(k, v) { try { localStorage.setItem('pos:' + k, v); return true; } catch { return false; } },
+    del(k) { try { localStorage.removeItem('pos:' + k); } catch { /* storage unavailable */ } }
   };
+  const BOOT_TIME = Date.now();
 
   /* ---------- Icons ---------- */
   const GLYPH = {
@@ -41,6 +43,7 @@
     mute: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9l5 6M21 9l-5 6"/>',
     full: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
     copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
     pin: '<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'
   };
   const svg = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GLYPH[name] || ''}</svg>`;
@@ -120,7 +123,7 @@
       + `\n\n## Selected projects\n\n` + D.projects.map(pr => `- **${pr.name}**${pr.badge ? ` (${pr.badge})` : ''} — ${pr.tagline}`).join('\n') + '\n';
     const now = `# What I'm doing now\n\n${(D.now || []).map(n => `- ${n}`).join('\n')}\n`;
     const contact = `Contact ${p.name}\n${'-'.repeat(8 + p.name.length)}\n\nEmail     ${p.email}\nLocation  ${p.location}\n\n` + D.socials.map(s => `${s.name.padEnd(13)} ${s.url}`).join('\n') + '\n';
-    const welcome = `# Welcome to ${D.osName}\n\nThis is the portfolio of **${p.name}**, built as a small desktop operating system that runs in your browser.\n\n## Things to try\n\n- Open **Projects** and step into a project folder\n- Browse everything in **Files** — documents, screenshots and demo videos\n- Launch the **Terminal** and type \`help\`\n- Right-click the desktop to change the wallpaper\n- Say hello through **Contact**\n\nWindows can be dragged, resized, minimized and maximized, just like the real thing.\n`;
+    const welcome = `# Welcome to ${D.osName}\n\nThis is the portfolio of **${p.name}**, built as a small desktop operating system that runs in your browser.\n\n## Things to try\n\n- Open **Projects** and step into a project folder\n- Browse everything in **Files** — documents, screenshots and demo videos\n- Launch the **Terminal** and type \`help\` — try \`ls -l\`, \`ls | grep md\` or \`cowsay hello\`\n- Make your own files: \`touch hello.txt\`, then edit it with \`nano hello.txt\` or \`vim hello.txt\` (they are saved in your browser)\n- Right-click the desktop to change the wallpaper\n- Say hello through **Contact**\n\nWindows can be dragged, resized, minimized and maximized, just like the real thing.\n`;
     return { about, skills, resume, now, contact, welcome };
   }
   const projectReadme = pr => `# ${pr.name}\n\n${pr.tagline}\n\n${pr.description}\n\n## Highlights\n\n${pr.highlights.map(x => `- ${x}`).join('\n')}\n\n## Built with\n\n${pr.tech.map(t => `- ${t}`).join('\n')}\n\n## Links\n\n`
@@ -158,6 +161,7 @@
       file('README.md', 'text', { content: d.welcome }),
       file('contact.txt', 'text', { content: d.contact })
     ]);
+    loadUserFiles();
   }
 
   const fs = {
@@ -186,6 +190,176 @@
     join: (a, b) => (a === '~' ? '~/' : a + '/') + b,
     sorted: node => [...node.children].sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1))
   };
+
+  /* ---------- Visitor files ----------
+     Built-in files are read-only. Anything a visitor creates is flagged `user`
+     and saved in their browser (localStorage), so it survives a reload. */
+  const USER_KEY = 'userfs';
+  const MAX_FILE = 200 * 1024;
+  class FsError extends Error {}
+  const fail = msg => { throw new FsError(msg); };
+
+  function loadUserFiles() {
+    let list = [];
+    try { list = JSON.parse(store.get(USER_KEY) || '[]'); } catch { list = []; }
+    for (const { path, ...node } of Array.isArray(list) ? list : []) {
+      const i = String(path).lastIndexOf('/');
+      const parent = i > 0 && fs.resolve(path.slice(0, i));
+      if (!parent || parent.node.type !== 'dir' || parent.node.children.some(c => c.name === node.name)) continue;
+      parent.node.children.push(node.type === 'dir' ? { ...node, children: [] } : node);
+    }
+  }
+  function commit() {
+    const out = [];
+    const walk = (n, path) => n.children.forEach(c => {
+      const p = path + '/' + c.name;
+      if (c.user) { const { children, ...rest } = c; out.push({ path: p, ...rest }); }
+      if (c.type === 'dir') walk(c, p);
+    });
+    walk(root, '~');
+    if (!store.set(USER_KEY, JSON.stringify(out))) toast("Your browser isn't letting this page save files — they'll be gone after a reload");
+    document.dispatchEvent(new CustomEvent('fs:change'));
+  }
+
+  /** Split a path into its parent folder node and the new entry's name. */
+  function locate(path, cwd) {
+    const full = fs.norm(path, cwd);
+    if (full === '~') fail(`${path}: File exists`);
+    const i = full.lastIndexOf('/'), name = full.slice(i + 1);
+    const parent = fs.resolve(full.slice(0, i) || '~');
+    if (!parent) fail(`${path}: No such file or directory`);
+    if (parent.node.type !== 'dir') fail(`${path}: Not a directory`);
+    if (name.length > 64) fail(`${path}: File name too long`);
+    return { dir: parent.node, name, full };
+  }
+  const childOf = (dir, name) => dir.children.find(c => c.name === name);
+  const detach = path => { const p = fs.resolve(fs.parent(path)).node; p.children = p.children.filter(c => c !== fs.resolve(path).node); };
+  const clone = n => { const { children, ...rest } = n; return { ...rest, user: true, mtime: Date.now(), ...(n.type === 'dir' ? { children: children.map(clone) } : {}) }; };
+
+  Object.assign(fs, {
+    /** Text contents of a file, or null for binary files (images, videos, apps). */
+    read(n) {
+      if (n.kind === 'text') return n.content ?? '';
+      if (n.kind === 'link') return `[InternetShortcut]\nURL=${n.url}\n`;
+      return null;
+    },
+    size(n) {
+      if (n.type === 'dir') return 4096;
+      const t = fs.read(n);
+      if (t != null) return new TextEncoder().encode(t).length;
+      return n.kind === 'image' && n.src ? Math.round(n.src.length * .75) : null;
+    },
+    mtime: n => n.mtime || BOOT_TIME,
+    writable: n => !!n.user,
+
+    write(path, content, cwd = '~', append = false) {
+      const r = fs.resolve(path, cwd);
+      if (r) {
+        const n = r.node;
+        if (n.type === 'dir') fail(`${path}: Is a directory`);
+        if (!n.user || n.kind !== 'text') fail(`${path}: Permission denied (built-in files are read-only)`);
+        const next = append ? n.content + content : content;
+        if (next.length > MAX_FILE) fail(`${path}: File too large (max 200 KB)`);
+        n.content = next; n.mtime = Date.now();
+      } else {
+        if (content.length > MAX_FILE) fail(`${path}: File too large (max 200 KB)`);
+        const { dir, name } = locate(path, cwd);
+        dir.children.push(file(name, 'text', { content, user: true, mtime: Date.now() }));
+      }
+      commit();
+    },
+    touch(path, cwd = '~') {
+      const r = fs.resolve(path, cwd);
+      if (!r) return fs.write(path, '', cwd);
+      if (r.node.user) { r.node.mtime = Date.now(); commit(); }
+    },
+    mkdir(path, cwd = '~', parents = false) {
+      if (parents) {
+        let cur = '~';
+        for (const seg of fs.norm(path, cwd).slice(1).split('/').filter(Boolean)) {
+          const dirNode = fs.resolve(cur).node, next = fs.join(cur, seg), c = childOf(dirNode, seg);
+          if (c && c.type !== 'dir') fail(`cannot create directory '${path}': Not a directory`);
+          if (!c) dirNode.children.push({ name: seg, type: 'dir', children: [], user: true, mtime: Date.now() });
+          cur = next;
+        }
+        return commit();
+      }
+      const { dir: parent, name } = locate(path, cwd);
+      if (childOf(parent, name)) fail(`cannot create directory '${path}': File exists`);
+      parent.children.push({ name, type: 'dir', children: [], user: true, mtime: Date.now() });
+      commit();
+    },
+    remove(path, cwd = '~', { recursive = false, dirOnly = false } = {}) {
+      const r = fs.resolve(path, cwd);
+      if (!r) fail(`cannot remove '${path}': No such file or directory`);
+      if (r.path === '~') fail(`it is dangerous to operate recursively on '~' — and it's read-only anyway`);
+      const n = r.node;
+      if (dirOnly && n.type !== 'dir') fail(`failed to remove '${path}': Not a directory`);
+      if (dirOnly && n.children.length) fail(`failed to remove '${path}': Directory not empty`);
+      if (!n.user) fail(`cannot remove '${path}': Permission denied (built-in files are read-only)`);
+      if (n.type === 'dir' && !recursive && !dirOnly) fail(`cannot remove '${path}': Is a directory`);
+      detach(r.path);
+      commit();
+    },
+    /** Shared target logic for mv and cp: returns { dir, name } for the destination. */
+    _target(src, dst, cwd, verb) {
+      const d = fs.resolve(dst, cwd);
+      let dirNode, name, dirPath;
+      if (d && d.node.type === 'dir') { dirNode = d.node; name = src.node.name; dirPath = d.path; }
+      else { const l = locate(dst, cwd); dirNode = l.dir; name = l.name; dirPath = fs.parent(l.full); }
+      const destPath = fs.join(dirPath, name);
+      if (src.node.type === 'dir' && (destPath + '/').startsWith(src.path + '/')) fail(`cannot ${verb} '${src.path}' into itself`);
+      const existing = childOf(dirNode, name);
+      if (existing === src.node) fail(`'${src.path}' and '${destPath}' are the same file`);
+      if (existing) {
+        if (!existing.user || existing.type === 'dir' || src.node.type === 'dir') fail(`cannot overwrite '${destPath}': ${existing.user ? 'File exists' : 'Permission denied'}`);
+        dirNode.children = dirNode.children.filter(c => c !== existing);
+      }
+      return { dirNode, name };
+    },
+    move(src, dst, cwd = '~') {
+      const s = fs.resolve(src, cwd);
+      if (!s) fail(`cannot stat '${src}': No such file or directory`);
+      if (!s.node.user) fail(`cannot move '${src}': Permission denied (built-in files are read-only)`);
+      const { dirNode, name } = fs._target(s, dst, cwd, 'move');
+      detach(s.path);
+      s.node.name = name; s.node.mtime = Date.now();
+      dirNode.children.push(s.node);
+      commit();
+    },
+    copy(src, dst, cwd = '~', recursive = false) {
+      const s = fs.resolve(src, cwd);
+      if (!s) fail(`cannot stat '${src}': No such file or directory`);
+      if (s.node.type === 'dir' && !recursive) fail(`-r not specified; omitting directory '${src}'`);
+      const { dirNode, name } = fs._target(s, dst, cwd, 'copy');
+      dirNode.children.push({ ...clone(s.node), name });
+      commit();
+    },
+    /** A free name in a folder: base.ext, base-2.ext, base-3.ext … */
+    freeName(dirPath, base, ext = '') {
+      const node = fs.resolve(dirPath).node;
+      for (let i = 1; ; i++) { const n = `${base}${i > 1 ? '-' + i : ''}${ext}`; if (!childOf(node, n)) return n; }
+    },
+    reset() { store.del(USER_KEY); buildFS(); document.dispatchEvent(new CustomEvent('fs:change')); }
+  });
+
+  /* ---------- Small in-window dialog (prompt / confirm) ---------- */
+  function ask(win, { title, value = '', ok = 'OK', input = true }) {
+    return new Promise(resolve => {
+      const f = h(`<div class="dlg-wrap"><form class="dlg" role="dialog" aria-label="${esc(title)}">
+        <div class="dlg-title">${esc(title)}</div>
+        ${input ? `<input class="dlg-in" value="${esc(value)}" spellcheck="false" autocomplete="off">` : ''}
+        <div class="dlg-btns"><button type="button" class="btn" data-x>Cancel</button><button class="btn primary">${esc(ok)}</button></div></form></div>`);
+      const done = v => { f.remove(); resolve(v); };
+      $('form', f).addEventListener('submit', e => { e.preventDefault(); done(input ? $('.dlg-in', f).value.trim() || null : true); });
+      $('[data-x]', f).addEventListener('click', () => done(null));
+      f.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } });
+      win.el.append(f);
+      const el = $('.dlg-in', f) || $('.primary', f);
+      el.focus();
+      if (input) { const dot = value.lastIndexOf('.'); el.setSelectionRange(0, dot > 0 ? dot : value.length); }
+    });
+  }
 
   /** Open any filesystem path with the right app. */
   function openPath(path) {
@@ -492,6 +666,7 @@
       { label: 'Open Files', run: () => WM.open('files', { path: '~' }) },
       '-',
       { label: 'Close all windows', run: () => WM.closeAll() },
+      { label: 'Delete my files…', run: () => { fs.reset(); toast('Your files were deleted'); } },
       { label: 'Restart…', run: reboot }
     ];
   }
@@ -548,8 +723,8 @@
   }
 
   const OS = window.OS = {
-    D, $, $$, esc, h, svg, isMobile, isCoarse, apps: {}, fs, WM,
-    appIcon, fileIcon, kindLabel, openPath, tracks, toast, bindOpen,
+    D, $, $$, esc, h, svg, isMobile, isCoarse, apps: {}, fs, FsError, WM, BOOT_TIME,
+    appIcon, fileIcon, kindLabel, openPath, tracks, toast, bindOpen, showMenu, ask,
     setWallpaper, nextWallpaper, wallpapers: WALLPAPERS, reboot,
     get root() { return root; }
   };

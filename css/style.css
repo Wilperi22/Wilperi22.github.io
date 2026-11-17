@@ -488,3 +488,49 @@ h1, h2, h3, h4, p { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ===== Terminal extras ===== */
+.t-hit { background: rgba(251, 191, 36, .28); color: #fde68a; border-radius: 2px; }
+.t-mine { color: #fde68a; }
+
+/* ===== nano / vim (drawn over the terminal) ===== */
+.ed { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; background: #0a0b10; font: 13px/1.55 var(--mono); color: var(--text); }
+.ed kbd { font: inherit; background: #d7dbe5; color: #0b0d14; padding: 0 3px; border-radius: 2px; }
+.ed-head { display: flex; justify-content: space-between; gap: 12px; padding: 2px 10px; background: #d7dbe5; color: #0b0d14; white-space: nowrap; }
+.ed-head b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.ed-text { flex: 1; min-height: 0; margin: 0; padding: 8px 12px; border: 0; outline: 0; resize: none; background: transparent; color: var(--text); font: inherit; tab-size: 4; white-space: pre; overflow: auto; caret-color: var(--accent); }
+.ed-msg { min-height: 23px; padding: 1px 10px; display: flex; align-items: center; justify-content: center; gap: 12px; white-space: nowrap; overflow: hidden; }
+.ed-note { background: #d7dbe5; color: #0b0d14; padding: 0 6px; }
+.ed-ask { display: flex; align-items: center; gap: 10px; width: 100%; padding: 0 6px; background: #d7dbe5; color: #0b0d14; }
+.ed-ask input { flex: 1; min-width: 0; padding: 0; border: 0; outline: 0; background: none; color: inherit; font: inherit; }
+.ed-ask button { font: inherit; color: inherit; }
+.ed-ask kbd { background: #0b0d14; color: #d7dbe5; }
+.ed-keys { display: flex; flex-wrap: wrap; gap: 2px 16px; padding: 4px 10px 6px; border-top: 1px solid var(--border); font-size: 12px; }
+.ed-keys button { font: inherit; color: var(--muted); white-space: nowrap; }
+.ed-keys button:hover { color: var(--text); }
+.ed-vim .ed-msg { justify-content: space-between; }
+.ed-vim:not(.insert) .ed-text { caret-color: #febc2e; }
+.ed-left { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ed-pos { color: var(--muted); flex: none; }
+.ed-err { background: #c2413b; color: #fff; padding: 0 4px; }
+.ed-dim { color: var(--muted); }
+.ed-cmd { display: flex; margin: 0; }
+.ed-cmd input { flex: 1; min-width: 0; padding: 0; border: 0; outline: 0; background: none; color: var(--text); font: inherit; }
+
+/* ===== Notes editing ===== */
+.note-bar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface-solid); font-size: 12.5px; }
+.note-bar .grow { flex: 1; }
+.note-bar .btn { padding-block: 5px; }
+.note-edit { display: flex; flex-direction: column; height: 100%; }
+.note-text { flex: 1; min-height: 0; padding: 20px 24px; border: 0; outline: 0; resize: none; background: transparent; font: 13.5px/1.6 var(--mono); }
+
+/* ===== Files: your own files ===== */
+.f-item.mine .name { color: #fde68a; }
+
+/* ===== In-window dialog ===== */
+.dlg-wrap { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(5, 6, 10, .45); border-radius: inherit; }
+.dlg { display: grid; gap: 12px; width: min(340px, calc(100% - 32px)); margin: 0; padding: 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-solid); box-shadow: 0 20px 50px rgba(0, 0, 0, .5); }
+.dlg-title { font-weight: 600; overflow-wrap: anywhere; }
+.dlg-in { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); outline: 0; }
+.dlg-in:focus { border-color: var(--accent); }
+.dlg-btns { display: flex; justify-content: flex-end; gap: 8px; }
