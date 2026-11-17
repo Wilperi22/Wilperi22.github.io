@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Portfolio OS</title>
+  <meta name="description" content="An interactive desktop-style portfolio: explore projects, files, a terminal and more.">
+  <meta name="theme-color" content="#0b0d14">
+  <meta property="og:title" content="Portfolio OS">
+  <meta property="og:description" content="A portfolio you explore like an operating system.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%237c9cff'/%3E%3Cpath d='M9 12l5 4-5 4M16 21h7' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="js/data.js"></script>
+  <script defer src="assets/videos/videos.js"></script>
+  <script defer src="js/os.js"></script>
+  <script defer src="js/apps.js"></script>
+</head>
+<body>
+  <noscript>
+    <div class="noscript">
+      <h1>Portfolio OS</h1>
+      <p>This portfolio is an interactive desktop and needs JavaScript. Please enable it to explore.</p>
+    </div>
+  </noscript>
+
+  <div id="boot" aria-hidden="true">
+    <div class="boot-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l4 4-4 4M12 16h7"/></svg>
+    </div>
+    <div class="boot-name" id="boot-name">Portfolio OS</div>
+    <div class="boot-bar"><i></i></div>
+  </div>
+
+  <main id="desktop" class="wp-aurora">
+    <div class="wallpaper-glow" aria-hidden="true"></div>
+
+    <header id="topbar">
+      <div class="tb-left">
+        <button id="os-menu" class="tb-btn" data-menu aria-label="System menu" aria-haspopup="menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8l4 4-4 4M12 16h7"/></svg>
+        </button>
+        <span id="tb-app">Desktop</span>
+      </div>
+      <div class="tb-right">
+        <span id="tb-status" class="tb-status" hidden></span>
+        <time id="tb-clock"></time>
+      </div>
+    </header>
+
+    <nav id="icons" aria-label="Desktop icons"></nav>
+    <div id="windows"></div>
+    <nav id="dock" aria-label="Dock"></nav>
+    <div id="toasts" aria-live="polite"></div>
+  </main>
+</body>
+</html>
